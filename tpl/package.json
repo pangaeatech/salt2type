@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "jquery": "3.6.4",
-    "linq": "4.0.1",
+    "linq": "4.0.2",
     "uuid": "9.0.0"
   },
   "devDependencies": {
