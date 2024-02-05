@@ -11,7 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "jquery": "3.6.4",
+    "jquery": "3.7.1",
     "linq": "4.0.1",
     "uuid": "9.0.0"
   },
