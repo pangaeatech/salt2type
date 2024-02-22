@@ -54,12 +54,12 @@ export class Nullable$1 {
         return a !== undefined && b != undefined && a <= b;
     }
 
-    static add(a?: number, b?: number): number | null {
-        return a !== undefined && b != undefined ? a + b : null;
+    static add(a?: number, b?: number): number | undefined {
+        return a !== undefined && b != undefined ? a + b : undefined;
     }
 
-    static sub(a?: number, b?: number): number | null {
-        return a !== undefined && b != undefined ? a - b : null;
+    static sub(a?: number, b?: number): number | undefined {
+        return a !== undefined && b != undefined ? a - b : undefined;
     }
 }
 
@@ -101,10 +101,10 @@ export function compare(a: number, b: number): number {
 }
 
 /** Int32 */
-export type Int32 = number | null | undefined;
+export type Int32 = number | undefined;
 
 function _commaFormatNumber(num, groups, decimal, comma) {
-    var decimalPart = null;
+    var decimalPart = undefined;
     var decimalIndex = num.indexOf(decimal);
     if (decimalIndex > 0) {
         decimalPart = num.substr(decimalIndex);

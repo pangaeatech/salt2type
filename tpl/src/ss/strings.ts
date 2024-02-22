@@ -157,7 +157,7 @@ export function parseXml(markup: string) {
         return new DOMParser().parseFromString(markup, "text/xml");
     } catch (ex) {}
 
-    return null;
+    return undefined;
 }
 
 export function isLower(c: number): boolean {

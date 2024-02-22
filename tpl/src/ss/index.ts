@@ -174,7 +174,7 @@ export function isAssignableFrom<T1, T2>(target: Type<T1>, typ: Type<T2>): boole
 
 /* eslint-disable @typescript-eslint/ban-types */
 
-export function getDefaultValue<T>(typ: Type<T>): T | null {
+export function getDefaultValue<T>(typ: Type<T>): T | undefined {
     if (referenceEquals(typ, Boolean)) {
         return false as unknown as T;
     }
@@ -187,7 +187,7 @@ export function getDefaultValue<T>(typ: Type<T>): T | null {
         return 0 as unknown as T;
     }
 
-    return null;
+    return undefined;
 }
 
 export function createInstance<T>(typ: Type<T>): T {
@@ -216,7 +216,7 @@ export function createInstance<T>(typ: Type<T>): T {
 
 /* eslint-enable @typescript-eslint/ban-types */
 
-export function getInstanceType<T>(instance: T | null): Type<T> {
+export function getInstanceType<T>(instance: T): Type<T> {
     if (!instance) {
         throw "Cannot get type of null";
     }
