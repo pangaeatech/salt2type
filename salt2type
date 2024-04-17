@@ -33,7 +33,7 @@ SOFTWARE.
 import os, re, sys
 from xml.etree import ElementTree
 from dataclasses import dataclass
-from typing import List, Tuple, Optional, TextIO, Set
+from typing import List, Tuple, Optional, TextIO, Set, Union, Callable, Dict
 
 #############
 ### TYPES ###
@@ -162,7 +162,7 @@ def read_js(filename: str, ignfile: Optional[str]) -> Tuple[str, List[ClassDef],
         lines = fil.read().splitlines()
 
     asm_name = ""
-    classes = {}  # key = ssVarName, value = ClassDef
+    classes = {}  # { var_id: ClassDef }
     globs = []
 
     curr_class: Optional[ClassDef] = None
@@ -374,7 +374,8 @@ def clean_line(line: str) -> str:
     Prepares the specified line for typescript.
     """
     # Handle generic method calls
-    line = re.sub(r"\b([A-Za-z0-9$_]+)\(([^\(\)]+)\)\.call\(", lambda m: f"{m.group(1)}<{to_type(m.group(2))}>(", line)
+    line = re.sub(r"\b([A-Za-z0-9$_]+)\(([^\(\)]+)\)\.call\(null, *", lambda m: f"{m.group(1)}<{to_type(m.group(2))}>(", line)
+    line = re.sub(r"\bnull\b", "undefined", line)
 
     return line
 
@@ -469,30 +470,100 @@ def to_type(raw_type: str) -> str:
     raw_type = re.sub(r"\bbool\b", "boolean", raw_type)
     raw_type = re.sub(r"\b(int|float|double|long|short|byte|uint)\b", "number", raw_type)
     raw_type = re.sub(r"\b(ss\.)?(IList|List|IEnumerable|ICollection)\b", "Array", raw_type)
-    raw_type = re.sub(r"\b(ss\.)?JsDate\b", "Date", raw_type)
     raw_type = re.sub(r"\bObject\b", "object", raw_type)
+    raw_type = re.sub(r"\bjQueryEventHandler\b", "JQuery.EventHandler", raw_type)
+    raw_type = re.sub(r"\bjQueryEvent\b", "JQuery.Event", raw_type)
     raw_type = re.sub(r"\bjQueryObject\b", "JQuery", raw_type)
+    raw_type = re.sub(r"\bDateTime\b", "Date", raw_type)
     raw_type = re.sub(r"\bdynamic\b", "any", raw_type)
-    raw_type = re.sub(r"\bDelegate\b", "Action<void>", raw_type)
     raw_type = re.sub(r"^delegate (.*)$", r"Action<\1>", raw_type)
-    raw_type = re.sub(r"(ss\.)?(Js)?Dictionary\<", r"Record<", raw_type)
-    raw_type = re.sub(r"(ss\.)?(Js)?Dictionary([^<])", r"Record<string,unknown>1", raw_type)
     raw_type = re.sub(r"^(sealed override|override|params|readonly|new|this|abstract|const) ", "", raw_type)
 
+    if raw_type in ("any", "unknown"):
+        return raw_type
+
     if optional:
-        return "%s | undefined | null" % raw_type
+        return "%s | undefined" % raw_type
 
-    return raw_type
+    if raw_type in ("number", "boolean", "Date", "string", "JsDictionary", "void"):
+        return raw_type
+
+    if raw_type.endswith("[])"):
+        return raw_type
+
+    if raw_type.startswith("Dictionary<") or raw_type.startswith("TypeOption<"):
+        return raw_type
+
+    return "%s | undefined" % raw_type
 
 
-def read_doc(filename: str) -> List[ClassDef]:
+def create_var_adder(all_classes: List[ClassDef]) -> Callable[[str, str, str], str]:
+    """
+    Generates a callable function which takes the following arguments: line, curr_namespace, curr_name.
+    When called, the function returns a modified version of the "line" where
+    all classnames are replaced by their var_ids EXCEPT for the current class.
+    For classnames where there are multiple candidates, the one in the "closest"
+    namespace is chosen.
+    """
+    classes = {}  # { name: { namespace: var_id } }
+    for item in all_classes:
+        if item.name not in classes:
+            classes[item.name] = {}
+        classes[item.name][item.namespace] = item.var_id
+
+    def get_varid(data: Dict[str, str], curr_namespace: str) -> Optional[str]:
+        """
+        Gets the var_id associated with the specified class name (if there are
+        multiple, then it is in the "closest" namespace to the one specified).
+
+        Returns None if not found.
+        """
+        items = list(data.items())
+        if len(items) < 1:
+            return None
+
+        if len(items) == 1:
+            return items[0][1]
+
+        prefix = curr_namespace
+        while prefix:
+            for namespace, var_id in items:
+                if namespace.startswith(prefix):
+                    return var_id
+
+            if "." in prefix:
+                [prefix, _] = prefix.rsplit(".", 1)
+            else:
+                prefix = ""
+
+        return items[0][1]
+
+    def var_adder(line: str, curr_namespace: str, curr_name: str) -> str:
+        """
+        Replaces all classnames (EXCEPT for the current class) with their var_ids.
+        """
+        for name, data in classes.items():
+            if name != curr_name:
+                var_id = get_varid(data, curr_namespace)
+                if var_id:
+                    line = re.sub(r"\b%s\b" % re.escape(name), var_id, line)
+        return line
+
+    return var_adder
+
+
+def read_doc(filename: str, add_vars: Callable[[str, str, str], str]) -> Union[List[ClassDef], str]:
     """
     Reads in the XML Doxygen file specified by the given filename and returns its parsed contents.
 
     @param filename: The XML file to read from
     @return: All of the class definitions found in the file.
     """
-    classes = {}  # key = `${namespace}.${name}`, value = ClassDef
+    trimmed = filename.lower().strip()
+    if trimmed in ("any", "unknown"):
+        return trimmed
+
+    classes = {}  # { `${namespace}.${name}`: ClassDef }
 
     root = ElementTree.parse(filename).getroot()
     for compound in root.findall("compounddef"):
@@ -520,7 +591,7 @@ def read_doc(filename: str) -> List[ClassDef]:
                 type_node = member.find("type")
                 for ref in type_node.findall("ref"):
                     links.append(ref.get("refid"))
-                typ = to_type(to_text(type_node))
+                typ = add_vars(to_type(to_text(type_node)), namespace, name)
                 if not typ and mname == name:
                     typ = name
 
@@ -538,7 +609,7 @@ def read_doc(filename: str) -> List[ClassDef]:
                         ptype_node = param.find("type")
                         for ref in ptype_node.findall("ref"):
                             links.append(ref.get("refid"))
-                        ptyp = to_type(to_text(ptype_node))
+                        ptyp = add_vars(to_type(to_text(ptype_node)), namespace, name)
                         prest = to_text(ptype_node).startswith("params ")
                         params.append(PropDef(pname, None, ptyp, None, prest))
 
@@ -550,6 +621,9 @@ def read_doc(filename: str) -> List[ClassDef]:
 def find_prop(items: List[PropDef], name: str) -> Optional[PropDef]:
     """
     Finds the specified property by name (if it exists in the specified list.
+
+    @param items: The property definitions (from JS)
+    @param name: The name (from XML)
     """
     for item in items:
         if item.name.lower() == name.lower():
@@ -584,52 +658,85 @@ def find_method(items: List[MethodDef], name: str, args: int) -> Optional[Method
     return None
 
 
-def add_doc_info(defs: List[ClassDef], types: List[ClassDef]) -> None:
+def add_doc_info(defs: List[ClassDef], types: Union[List[ClassDef], str]) -> None:
     """
     Updates the class definitions found in C{defs} to specify all of the documentation details found in C{types}.
 
-    @param defs: The class definitions to modify in-place to add type definitions.
-    @param types: The type definitions to use for lookup.
+    @param defs: The class definitions (from JS) to modify in-place to add type definitions.
+    @param types: The type definitions (from XML) to use for lookup.
     """
-    classes = {}  # key = `${namespace}.${name}`, value = ClassDef
+    classes = {}  # { `${namespace}.${name}`: ClassDef }
     for curr_class in defs:
         key = "%s.%s" % (curr_class.namespace, curr_class.name)
         classes[key] = curr_class
 
-    for typ in types:
-        key = "%s.%s" % (typ.namespace, typ.name)
-        curr_class = classes.get(key)
+    if isinstance(types, str):
+        for curr in defs:
+            for method in curr.methods:
+                method.typ = types
+                for param in method.params:
+                    param.typ = types
+            for prop in curr.props:
+                prop.typ = types
 
-        if curr_class:
-            curr_class.doc_id = typ.doc_id
-            curr_class.is_abstract = typ.is_abstract
+    else:
+        for typ in types:
+            key = "%s.%s" % (typ.namespace, typ.name)
+            curr_class = classes.get(key)
 
-            for method in typ.methods:
-                curr_method = find_method(curr_class.methods, method.name, len(method.params))
+            if curr_class:
+                curr_class.doc_id = typ.doc_id
+                curr_class.is_abstract = typ.is_abstract
 
-                if curr_method:
-                    curr_method.typ = method.typ
-                    curr_method.desc = method.desc
-                    curr_method.protection = method.protection
-                    curr_method.is_static = curr_method.is_static or method.is_static
+                for method in typ.methods:
+                    curr_method = find_method(curr_class.methods, method.name, len(method.params))
 
-                    for param in method.params:
-                        curr_param = find_prop(curr_method.params, param.name)
+                    if curr_method:
+                        curr_method.typ = method.typ
+                        curr_method.desc = method.desc
+                        curr_method.protection = method.protection
+                        curr_method.is_static = curr_method.is_static or method.is_static
 
-                        if curr_param:
-                            curr_param.typ = param.typ
-                            curr_param.desc = param.desc
-                            curr_param.is_rest = param.is_rest
+                        for param in method.params:
+                            curr_param = find_prop(curr_method.params, param.name)
 
-            for prop in typ.props:
-                curr_prop = find_prop(curr_class.props, prop.name)
+                            if curr_param:
+                                curr_param.typ = param.typ
+                                curr_param.desc = param.desc
+                                curr_param.is_rest = param.is_rest
 
-                if curr_prop:
-                    curr_prop.typ = prop.typ
-                    curr_prop.desc = prop.desc
-                    curr_prop.is_rest = prop.is_rest
+                for prop in typ.props:
+                    curr_prop = find_prop(curr_class.props, prop.name)
 
-            curr_class.links.extend(typ.links)
+                    if curr_prop:
+                        curr_prop.typ = prop.typ
+                        curr_prop.desc = prop.desc
+                        curr_prop.is_rest = prop.is_rest
+                    else:
+                        if prop.typ == "boolean":
+                            def_val = "false"
+                        elif prop.typ == "number":
+                            def_val = "0"
+                        elif prop.typ == "Date":
+                            def_val = "new Date(0)"
+                        elif prop.typ == "string":
+                            def_val = '""'
+                        elif prop.typ == "JsDictionary" or prop.typ.startswith("Dictionary"):
+                            def_val = "{}"
+                        elif prop.typ.endswith("[]"):
+                            def_val = "[]"
+                        else:
+                            def_val = None
+
+                        char1 = prop.name[0]
+                        if char1 in ("_", char1.lower()):
+                            prop_name = "$" + prop.name
+                        else:
+                            prop_name = char1.lower() + prop.name[1:]
+
+                        curr_class.props.append(PropDef(prop_name, def_val, prop.typ, prop.desc))
+
+                curr_class.links.extend(typ.links)
 
 
 def copy_file(in_file: str, out_file: str, asm_name: str, ns_name: str) -> None:
@@ -686,7 +793,7 @@ def prop_to_string(prop: PropDef) -> str:
     """
     Generates a stringified version of the property for typescript
     """
-    defval = " = %s" % prop.def_val if prop.def_val else ""
+    defval = " = %s" % prop.def_val if prop.def_val and prop.def_val not in ("undefined", "null") else ""
     typstr = ": %s" % (prop.typ or "any") if not defval or prop.typ else ""
     prefix = "..." if prop.is_rest else ("static " if prop.is_static else "")
     return "%s%s%s%s" % (prefix, prop.name, typstr, defval)
@@ -719,8 +826,22 @@ def gen_ts(out_dir: str, defs: List[ClassDef]) -> None:
             write_imports(defs, fil, item.namespace.replace(".", "/"), item.var_id)
             fil.write("\n")
 
-            if item.is_generic or item.is_enum:
-                fil.write("/** %s%s **/\n" % ("[Generic]" if item.is_generic else "", "[Enum]" if item.is_enum else ""))
+            if item.is_enum:
+                fil.write("enum %s {\n" % item.name)
+                for prop in item.props:
+                    if not prop.name.startswith("__"):
+                        fil.write("\n")
+                        if prop.desc:
+                            fil.write("\t/** %s **/\n" % prop.desc)
+                        fil.write("\t%s%s,\n" % (prop.name, " = %s" % prop.def_val if prop.def_val else ""))
+
+                fil.write("}\n")
+                fil.write("\n")
+                fil.write("export default %s\n" % item.name)
+                continue
+
+            if item.is_generic:
+                fil.write("/** [Generic] **/\n")
 
             interfaces = "implements %s " % ", ".join(item.interfaces) if item.interfaces else ""
             baseclass = "extends %s " % item.base_class if item.base_class else ""
@@ -761,6 +882,7 @@ def write_imports(defs: List[ClassDef], out_file: TextIO, curr_dir: str, ignore_
             out_file.write("import %s from '%s/%s/%s';\n" % (item.var_id, go_up, item.namespace.replace(".", "/"), item.name))
 
     out_file.write("import * as ss from '%s/ss';\n" % go_up)
+    out_file.write("import { JsDictionary, Action, Delegate, Func, TypeOption } from '%s/types';\n" % go_up)
 
 
 def gen_index(out_dir: str, defs: List[ClassDef], globs: List[str]) -> None:
@@ -790,7 +912,8 @@ if __name__ == "__main__":
     [_, JS_FILE, XML_FILE, OUT_DIR, NS_NAME, BL_FILE] = (sys.argv + [None])[:6]  # pylint: disable=unbalanced-tuple-unpacking
 
     ASM_NAME, CLASSES, GLOBALS = read_js(JS_FILE, BL_FILE)
-    TYPES = read_doc(XML_FILE)
+    ADD_VARS = create_var_adder(CLASSES)
+    TYPES = read_doc(XML_FILE, ADD_VARS)
     add_doc_info(CLASSES, TYPES)
 
     copy_tpl(OUT_DIR, ASM_NAME, NS_NAME)

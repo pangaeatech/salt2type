@@ -1,34 +1,31 @@
 ﻿import { ArgumentException } from "./exceptions";
 
+interface EnumObject {
+    [key: string | number]: string | number;
+}
+
 export default class Enum {
-    static parse<T extends object>(enumType: T, s: string): unknown {
-        var keys = Object.keys(enumType);
-        for (const k of keys) {
-            if (k === s) {
-                return enumType[k];
-            }
+    static parse(item: EnumObject, s: string): number {
+        const val = item[s];
+        if (val === undefined) {
+            throw new ArgumentException("Invalid Enumeration Value");
         }
-        throw new ArgumentException("Invalid Enumeration Value");
+
+        return val as number;
     }
 
-    static toString<T extends object>(enumType: T, value: unknown): string {
-        var keys = Object.keys(enumType);
-        for (const k of keys) {
-            if (enumType[k] === value) {
-                return k;
-            }
+    static toString(item: EnumObject, value: number): string {
+        const val = item[value];
+        if (val === undefined) {
+            throw new ArgumentException("Invalid Enumeration Value");
         }
-        throw new ArgumentException("Invalid Enumeration Value");
+
+        return val as string;
     }
 
-    static getValues<T extends object>(enumType: T): unknown[] {
-        var parts: unknown[] = [];
-        var keys = Object.keys(enumType);
-        for (const k of keys) {
-            if (enumType.hasOwnProperty(k)) {
-                parts.push(enumType[k]);
-            }
-        }
-        return parts;
+    static getValues(item: EnumObject): number[] {
+        return Object.keys(item)
+            .map((i) => Number(i))
+            .filter((i) => !isNaN(i));
     }
 }

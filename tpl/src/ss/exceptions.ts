@@ -2,12 +2,12 @@ import { Stringable } from "./StringBuilder";
 
 export class Exception {
     private _message: string;
-    private _innerException: Exception | null;
+    private _innerException?: Exception;
     private _error: Error;
 
     constructor(message?: string, innerException?: Exception, cause?: Error) {
         this._message = message || "An error occurred.";
-        this._innerException = innerException ?? null;
+        this._innerException = innerException;
         this._error = cause ?? new Error();
     }
 
@@ -15,7 +15,7 @@ export class Exception {
         return this._message;
     }
 
-    get_innerException(): Exception | null {
+    get_innerException(): Exception | undefined {
         return this._innerException;
     }
 

@@ -233,8 +233,8 @@ describe("getDefaultValue function", () => {
         expect(getDefaultValue(Number)).toBe(0);
     });
 
-    test("getDefaultValue returns null for unknown type", () => {
-        expect(getDefaultValue(String)).toBeNull();
+    test("getDefaultValue returns undefined for unknown type", () => {
+        expect(getDefaultValue(String)).toBeUndefined();
     });
 });
 
