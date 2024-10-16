@@ -373,6 +373,9 @@ def clean_line(line: str) -> str:
     """
     Prepares the specified line for typescript.
     """
+    # Handle generic static method calls
+    line = re.sub(r"\b([A-Za-z0-9$_]+)\(([^\(\)]+)\)\.call\(null,\s+", lambda m: f"{m.group(1)}<{to_type(m.group(2))}>(", line)
+
     # Handle generic method calls
     line = re.sub(r"\b([A-Za-z0-9$_]+)\(([^\(\)]+)\)\.call\(", lambda m: f"{m.group(1)}<{to_type(m.group(2))}>(", line)
 
