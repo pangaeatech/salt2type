@@ -33,6 +33,6 @@
     "ts-node": "10.9",
     "typescript": "5.7",
     "webpack": "5.97",
-    "webpack-cli": "5.1"
+    "webpack-cli": "6.0"
   }
 }
