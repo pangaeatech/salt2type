@@ -14,7 +14,7 @@ include = 'salt2type|\.pyi?$'
 
 [tool.poetry.dependencies]
 black = "25.1.0"
-coverage = "7.6.12"
+coverage = "7.7.0"
 dill = "0.3.9"
 pdoc = "15.0.1"
 pylint = "3.3.4"
