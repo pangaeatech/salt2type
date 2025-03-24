@@ -18,7 +18,7 @@
   "devDependencies": {
     "@babel/core": "7.26",
     "@babel/preset-env": "7.26",
-    "@babel/preset-typescript": "7.26",
+    "@babel/preset-typescript": "7.27",
     "@types/jest": "29.5",
     "@types/jquery": "3.5",
     "@typescript-eslint/eslint-plugin": "5.62",
