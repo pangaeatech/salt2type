@@ -4,7 +4,7 @@
   "devDependencies": {
     "husky": "9.1",
     "lint-staged": "16.1",
-    "prettier": "3.5"
+    "prettier": "3.6"
   },
   "scripts": {
     "prepare": "husky && poetry install",
