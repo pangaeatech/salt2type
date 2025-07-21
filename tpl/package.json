@@ -32,7 +32,7 @@
     "ts-loader": "9.5",
     "ts-node": "10.9",
     "typescript": "5.8",
-    "webpack": "5.99",
+    "webpack": "5.100",
     "webpack-cli": "6.0"
   }
 }
