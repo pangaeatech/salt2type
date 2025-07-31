@@ -31,7 +31,7 @@
     "prettier": "3.6",
     "ts-loader": "9.5",
     "ts-node": "10.9",
-    "typescript": "5.8",
+    "typescript": "5.9",
     "webpack": "5.101",
     "webpack-cli": "6.0"
   }
