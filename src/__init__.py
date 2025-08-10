@@ -26,4 +26,5 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-from .helper import read_js, read_doc, add_doc_info, copy_tpl, gen_ts, gen_index
+from .types import *
+from .methods import *

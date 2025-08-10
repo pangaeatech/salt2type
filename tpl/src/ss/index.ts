@@ -1,17 +1,18 @@
 import { v4 as newGuid } from "uuid";
 
+export type Func<T1, T2> = (a: T1) => T2;
+export type TypeOption<T1, T2, T3 = void, T4 = void> = T1 | T2 | T3 | T4;
+
 export { default as StringBuilder } from "./StringBuilder";
 export { default as Stopwatch } from "./Stopwatch";
 export { default as TimeSpan } from "./TimeSpan";
 export { default as Enum } from "./Enum";
 
-export { JsDate, utcNow, toUTC, fromUTC, today, formatDate, netFormatDate } from "./dates";
-export { formatNumber, round, unbox, Nullable$1, NumberFormatInfo, compare, Int32, netFormatNumber } from "./numbers";
+export { utcNow, toUTC, fromUTC, today, formatDate, netFormatDate } from "./dates";
+export { formatNumber, round, unbox, Nullable$1, NumberFormatInfo, compare, netFormatNumber } from "./numbers";
 export {
     Action,
     Delegate,
-    Func,
-    TypeOption,
     mkdel,
     delegateCombine,
     delegateRemove,
@@ -140,7 +141,7 @@ export function staticEquals(a: unknown, b: unknown): boolean {
 export const Guid = { newGuid };
 
 /** Perform a shallow copy of an object. */
-export function shallowCopy(source: unknown, target: object): void {
+export function shallowCopy(source: unknown, target: any): void {
     Object.assign(target, source);
 }
 
@@ -155,11 +156,11 @@ export interface Type<T> {
 }
 
 export function cast<F extends T, T>(o: F, typ: Type<T>): T {
-    return o as T;
+    return o as unknown as T;
 }
 
 export function safeCast<F extends T, T>(o: F, typ: Type<T>): T {
-    return o as T;
+    return o as unknown as T;
 }
 
 export function isInstanceOfType<T1, T2>(instance: T1 | null | undefined, typ: Type<T2>): boolean {
