@@ -352,13 +352,13 @@ tests = ["pytest (>=9)", "typing-extensions (>=4.15)"]
 
 [[package]]
 name = "pdoc"
-version = "15.0.2"
+version = "15.0.4"
 description = "API Documentation for Python Projects"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "pdoc-15.0.2-py3-none-any.whl", hash = "sha256:0ea70b1bc13c836bcb29347884760cca5b30d668c62b50c0edc823846bef0b43"},
-    {file = "pdoc-15.0.2.tar.gz", hash = "sha256:854ca0d9ec0efb80ba1f911f62a1daee57bdc4f2da3a4b60071a47e5f7e6e924"},
+    {file = "pdoc-15.0.4-py3-none-any.whl", hash = "sha256:f9028e85e7bb8475b054e69bde1f6d26fc4693d25d9fa1b1ce9009bec7f7a5c4"},
+    {file = "pdoc-15.0.4.tar.gz", hash = "sha256:cf9680f10f5b4863381f44ef084b1903f8f356acb0d4cc6b64576ba9fb712c82"},
 ]
 
 [package.dependencies]
@@ -486,4 +486,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "~3.13"
-content-hash = "6a870bc233ec47de25ba2d651f28611c2f9a9108db2b5c438b91bc9b840aeddb"
+content-hash = "b3b86c4bf1194bd8d94b4a4ebf1b2f380cfb53cdf5b0800dd3d1e89c61cd1829"
