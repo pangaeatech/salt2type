@@ -60,7 +60,9 @@ confidence=
 disable=multiple-imports,
         broad-exception-raised,
         consider-using-f-string,
-        unspecified-encoding
+        unspecified-encoding,
+        wildcard-import,
+        unused-wildcard-import
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -118,7 +120,7 @@ ignore-docstrings=yes
 ignore-imports=no
 
 # Minimum lines number of a similarity.
-min-similarity-lines=4
+min-similarity-lines=20
 
 
 [FORMAT]

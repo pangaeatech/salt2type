@@ -100,9 +100,6 @@ export function compare(a: number, b: number): number {
     return a - b;
 }
 
-/** Int32 */
-export type Int32 = number | undefined;
-
 function _commaFormatNumber(num, groups, decimal, comma) {
     var decimalPart: number | undefined = undefined;
     var decimalIndex = num.indexOf(decimal);
