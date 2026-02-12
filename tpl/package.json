@@ -13,7 +13,7 @@
   "dependencies": {
     "jquery": "3.7.1",
     "linq": "4.0.3",
-    "uuid": "9.0.1"
+    "uuid": "12.0.0"
   },
   "devDependencies": {
     "@babel/core": "7.29",
