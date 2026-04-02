@@ -17,6 +17,7 @@ export {
     delegateRemove,
     delegateEquals,
     delegateClone,
+    applyConstructor,
     thisFix,
     getInvocationList
 } from "./delegates";

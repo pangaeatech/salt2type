@@ -20,7 +20,7 @@ function _mkdel(targets: Action[]): Delegate {
     return del;
 }
 
-export function mkdel<T>(obj: T | undefined | null, method: (o?: T) => void): Delegate {
+export function mkdel<T>(obj: T | undefined | null, method: (o?: T) => void | Promise<void>): Delegate {
     if (obj !== null && obj !== undefined) {
         return _mkdel([
             () => {
@@ -96,6 +96,10 @@ export function thisFix<T extends Function>(source: T): T {
 
 export function getInvocationList(delegate: Delegate): Action[] {
     return delegate._targets;
+}
+
+export function applyConstructor(clazz: new (...args: any[]) => any, args: any[]): any {
+    return new clazz(...args);
 }
 
 export type Func<T1, T2> = (a: T1) => T2;
