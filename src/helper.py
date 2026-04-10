@@ -812,6 +812,8 @@ def gen_ts(out_dir: str, defs: List[ClassDef], extra_imports: Optional[List[str]
                     fil.write("\t%s %s%s%s(%s): %s {\n" % (prot, "static " if method.is_static else "", method.name, gen, props, method.typ or "any"))
                 else:
                     fil.write("\tconstructor%s(%s) {\n" % (gen, props))
+                    if item.base_class and not re.match(r"\bsuper\s*\(", "".join(method.body)):
+                        fil.write("\t\tsuper();\n")
                 for line in method.body:
                     fil.write("\t%s\n" % fix_body_line(line))
                 fil.write("\t}\n")
@@ -857,6 +859,7 @@ def fix_body_line(line: str) -> str:
     """
     line = re.sub(r"\bnull\b", "undefined", line)
     line = re.sub(r"^(\s*var [A-Za-z0-9$_]+) = \[\];\s*$", lambda m: f"{m.group(1)}: any[] = [];", line)
+    line = re.sub(r"\bss\.mkdel\(this,\s*function\s*\((.*)\)\s*\{", lambda m: f"(({m.group(1)}) => {{", line)
 
     return line
 
